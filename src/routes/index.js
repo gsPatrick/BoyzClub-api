@@ -151,6 +151,13 @@ router.post('/webhooks/telegram/:token', WebhookController.handleTelegram);
 router.get('/auth/me', authMiddleware, AuthController.me);
 router.put('/auth/gateway', authMiddleware, AuthController.updateGateway);
 
+// Onboarding & Promotion
+router.post('/auth/complete-onboarding', authMiddleware, AuthController.completeOnboarding);
+router.get('/auth/promotion-status', authMiddleware, AuthController.getPromotionStatus);
+router.post('/auth/activate-promotion', authMiddleware, AuthController.activatePromotion);
+router.post('/auth/deactivate-promotion', authMiddleware, AuthController.deactivatePromotion);
+router.post('/auth/submit-promotion', authMiddleware, AuthController.submitPromotion);
+
 // Stats
 router.get('/stats', authMiddleware, StatsController.getCreatorStats);
 
@@ -228,6 +235,28 @@ router.post('/admin/creators/:userId/toggle-status', authMiddleware, adminMiddle
     const newStatus = user.status === 'banned' ? 'active' : 'banned';
     await user.update({ status: newStatus });
     res.json({ message: `Usuário ${newStatus}`, user: user.toJSON() });
+});
+
+// Admin: Update creator fee rate
+router.put('/admin/creators/:userId/fee', authMiddleware, adminMiddleware, async (req, res) => {
+    const { User } = require('../models');
+    const { feeRate, feeType } = req.body;
+
+    const user = await User.findByPk(req.params.userId);
+    if (!user) {
+        return res.status(404).json({ error: 'Usuário não encontrado' });
+    }
+
+    await user.update({
+        fee_rate: parseFloat(feeRate) || 5,
+        fee_type: feeType || 'standard'
+    });
+
+    res.json({
+        message: 'Taxa atualizada',
+        feeRate: user.fee_rate,
+        feeType: user.fee_type
+    });
 });
 
 // Admin: Create new creator

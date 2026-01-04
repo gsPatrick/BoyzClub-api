@@ -34,6 +34,57 @@ const User = sequelize.define('User', {
         type: DataTypes.ENUM('admin', 'creator'),
         defaultValue: 'creator'
     },
+
+    // ========== FEE & PROMOTION SYSTEM ==========
+    fee_rate: {
+        type: DataTypes.DECIMAL(5, 2),
+        defaultValue: 5.00,
+        comment: 'Taxa atual do criador (5% base ou 10% com divulgação)'
+    },
+    fee_type: {
+        type: DataTypes.ENUM('standard', 'promotion'),
+        defaultValue: 'standard',
+        comment: 'standard = 5%, promotion = 10% com divulgação'
+    },
+    promotion_active: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        comment: 'Se está com divulgação ativa'
+    },
+    promotion_started_at: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: 'Quando ativou a divulgação (mínimo 30 dias)'
+    },
+    promotion_ends_at: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: 'Quando a desativação foi agendada'
+    },
+    promotions_used_this_month: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+        comment: 'Divulgações usadas no mês (max 3)'
+    },
+    promotions_reset_at: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: 'Próximo reset do contador de divulgações'
+    },
+
+    // ========== ONBOARDING ==========
+    onboarding_completed: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        comment: 'Se completou o onboarding inicial'
+    },
+    terms_accepted_at: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: 'Quando aceitou os termos'
+    },
+
+    // ========== PAYMENT GATEWAY ==========
     pix_key: {
         type: DataTypes.STRING(255),
         allowNull: true,
@@ -50,8 +101,8 @@ const User = sequelize.define('User', {
         comment: 'ID da wallet para Split (subconta Asaas)'
     },
     gateway_preference: {
-        type: DataTypes.ENUM('asaas', 'mercadopago', 'stripe'),
-        defaultValue: 'asaas'
+        type: DataTypes.ENUM('asaas', 'mercadopago', 'stripe', 'pushinpay'),
+        defaultValue: 'pushinpay'
     },
     gateway_api_token: {
         type: DataTypes.TEXT,
