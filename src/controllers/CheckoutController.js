@@ -2,6 +2,7 @@ const { Plan, Bot, User, Subscription, Transaction } = require('../models');
 const AsaasService = require('../services/payment/AsaasService');
 const MercadoPagoService = require('../services/payment/MercadoPagoService');
 const StripeService = require('../services/payment/StripeService');
+const PushinPayService = require('../services/payment/PushinPayService');
 const config = require('../config');
 
 /**
@@ -68,6 +69,9 @@ class CheckoutController {
             // Create external reference for tracking
             const externalReference = `${plan.id}_${telegramId || 'web'}_${Date.now()}`;
 
+            // Webhook URL
+            const webhookUrl = `${config.urls.api}/api/webhooks/${gateway.toLowerCase()}`;
+
             // Prepare payment data
             const paymentData = {
                 planId: plan.id,
@@ -80,6 +84,7 @@ class CheckoutController {
                 telegramId,
                 telegramUsername,
                 externalReference,
+                webhookUrl,
                 successUrl: `${config.urls.frontend}/success?ref=${externalReference}`,
                 failureUrl: `${config.urls.frontend}/failure`,
                 cancelUrl: `${config.urls.frontend}/cancel`,
@@ -120,6 +125,16 @@ class CheckoutController {
                             ...paymentData,
                             isSubscription: plan.is_recurring && plan.duration_days > 0
                         });
+                        break;
+
+                    case 'pushinpay':
+                        // PushinPay - PIX only
+                        result = await PushinPayService.createPixPayment(
+                            creatorApiKey,
+                            paymentData,
+                            config.pushinpay?.platformAccountId, // ID da conta da plataforma para split
+                            webhookUrl
+                        );
                         break;
 
                     default:

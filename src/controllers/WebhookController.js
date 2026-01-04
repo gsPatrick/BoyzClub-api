@@ -3,6 +3,7 @@ const TelegramEngine = require('../services/TelegramEngine');
 const AsaasService = require('../services/payment/AsaasService');
 const MercadoPagoService = require('../services/payment/MercadoPagoService');
 const StripeService = require('../services/payment/StripeService');
+const PushinPayService = require('../services/payment/PushinPayService');
 
 /**
  * Webhook Controller
@@ -148,6 +149,51 @@ class WebhookController {
         } catch (error) {
             console.error('[Webhook] Stripe error:', error);
             res.sendStatus(500);
+        }
+    }
+
+    /**
+     * POST /api/webhooks/pushinpay
+     * Handle PushinPay webhooks
+     * 
+     * Payload: { id, value, status, description }
+     */
+    async handlePushinPay(req, res) {
+        try {
+            console.log('[Webhook] PushinPay event:', JSON.stringify(req.body, null, 2));
+
+            // Respond immediately to PushinPay (they expect fast response)
+            res.status(200).json({ received: true });
+
+            // Process webhook payload
+            const event = PushinPayService.processWebhook(req.body);
+
+            if (!event.transactionId) {
+                console.log('[Webhook] No transaction ID in PushinPay event');
+                return;
+            }
+
+            // Find transaction by gateway payment ID
+            const transaction = await Transaction.findOne({
+                where: { gateway_payment_id: event.transactionId },
+                include: ['subscription']
+            });
+
+            if (!transaction) {
+                console.log('[Webhook] Transaction not found for PushinPay ID:', event.transactionId);
+                return;
+            }
+
+            // Process based on status
+            if (event.isPaid) {
+                await this.processPaymentStatus(transaction, 'CONFIRMED', {
+                    paidAt: new Date()
+                });
+                console.log('[Webhook] PushinPay payment confirmed:', event.transactionId);
+            }
+        } catch (error) {
+            console.error('[Webhook] PushinPay error:', error);
+            // Already responded, just log
         }
     }
 

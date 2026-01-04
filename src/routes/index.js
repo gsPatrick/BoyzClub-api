@@ -116,6 +116,7 @@ router.get('/bots/public/:botUsername', async (req, res) => {
 
 router.post('/webhooks/asaas', WebhookController.handleAsaas);
 router.post('/webhooks/mercadopago', WebhookController.handleMercadoPago);
+router.post('/webhooks/pushinpay', WebhookController.handlePushinPay);
 router.post('/webhooks/telegram/:token', WebhookController.handleTelegram);
 
 // Stripe needs raw body, handled separately in app.js

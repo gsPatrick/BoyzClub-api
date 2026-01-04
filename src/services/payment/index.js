@@ -1,6 +1,7 @@
 const AsaasService = require('./AsaasService');
 const MercadoPagoService = require('./MercadoPagoService');
 const StripeService = require('./StripeService');
+const PushinPayService = require('./PushinPayService');
 const config = require('../../config');
 
 /**
@@ -12,7 +13,8 @@ class PaymentService {
         this.gateways = {
             asaas: AsaasService,
             mercadopago: MercadoPagoService,
-            stripe: StripeService
+            stripe: StripeService,
+            pushinpay: PushinPayService
         };
     }
 
@@ -58,6 +60,13 @@ class PaymentService {
             case 'stripe':
                 return await service.createCheckoutSession(paymentData, creatorWalletId);
 
+            case 'pushinpay':
+                return await service.createPaymentWithSplit(
+                    paymentData.creatorApiToken,
+                    paymentData,
+                    creatorWalletId
+                );
+
             default:
                 throw new Error(`Gateway '${gateway}' not implemented`);
         }
@@ -82,6 +91,14 @@ class PaymentService {
                     isSubscription: true
                 }, creatorWalletId);
 
+            case 'pushinpay':
+                // PushinPay não tem assinatura nativa, cria pagamento único
+                return await service.createPaymentWithSplit(
+                    subscriptionData.creatorApiToken,
+                    subscriptionData,
+                    creatorWalletId
+                );
+
             default:
                 throw new Error(`Gateway '${gateway}' not implemented`);
         }
@@ -100,6 +117,7 @@ class PaymentService {
      */
     getSupportedGateways() {
         return [
+            { id: 'pushinpay', name: 'PushinPay', description: 'PIX Sigiloso', recommended: true },
             { id: 'asaas', name: 'Asaas', description: 'PIX, Boleto, Cartão' },
             { id: 'mercadopago', name: 'Mercado Pago', description: 'PIX, Cartão' },
             { id: 'stripe', name: 'Stripe', description: 'Cartão Internacional' }
