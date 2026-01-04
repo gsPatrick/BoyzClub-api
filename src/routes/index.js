@@ -244,22 +244,32 @@ router.post('/admin/creators/:userId/toggle-status', authMiddleware, adminMiddle
 // Admin: Update creator fee rate
 router.put('/admin/creators/:userId/fee', authMiddleware, adminMiddleware, async (req, res) => {
     const { User } = require('../models');
-    const { feeRate, feeType } = req.body;
+    const { feeRate, feeType, promotionsUsed } = req.body;
 
     const user = await User.findByPk(req.params.userId);
     if (!user) {
         return res.status(404).json({ error: 'Usuário não encontrado' });
     }
 
-    await user.update({
+    const updateData = {
         fee_rate: parseFloat(feeRate) || 5,
-        fee_type: feeType || 'standard'
-    });
+        fee_type: feeType || 'standard',
+        promotion_active: feeType === 'promotion'
+    };
+
+    // Update promotions used if provided
+    if (typeof promotionsUsed === 'number' || promotionsUsed !== undefined) {
+        updateData.promotions_used_this_month = parseInt(promotionsUsed) || 0;
+    }
+
+    await user.update(updateData);
 
     res.json({
         message: 'Taxa atualizada',
         feeRate: user.fee_rate,
-        feeType: user.fee_type
+        feeType: user.fee_type,
+        promotionActive: user.promotion_active,
+        promotionsUsed: user.promotions_used_this_month
     });
 });
 
